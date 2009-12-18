@@ -15,6 +15,7 @@ import time
 import sqlbase
 import sys
 import pdb
+import codecs
 
 ## start query (optional)
 QUERY_START = (
@@ -58,8 +59,8 @@ class MainWin(sqbrowser_xrc.xrcfrmMain):
         self.sql_engine = None
         # misc setup
         self.StartTimer()
-        self.txtSqlDb.SetValue("/Users/Qu/Desktop/daybank-temp/daybank-Aug6.db")
-        self.txtSqlFile.SetValue("/Users/Qu/Desktop/temp.sql")
+        self.txtSqlDb.SetValue("")
+        self.txtSqlFile.SetValue("")
         pass
     
 ## EVENTS METHODS
@@ -326,7 +327,7 @@ class MainWin(sqbrowser_xrc.xrcfrmMain):
             return None
         contents = ""
         # get the file contents
-        fp = file(path, "r")
+        fp = codecs.open(path, "r", encoding="utf-8")
         contents = fp.read() 
         fp.close()
         return contents
