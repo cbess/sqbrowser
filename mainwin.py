@@ -167,8 +167,13 @@ class MainWin(sqbrowser_xrc.xrcfrmMain):
         queries = [query]
         if EXEC_ALL(query) is not None:
             queries = query.split(";")
+            # beseech user
+            msg = "Execute %d queries?" % len(queries)
+            if wx.MessageBox(message=msg, style=wx.YES|wx.NO) == wx.NO:
+                self.addLog("Multi-query operation aborted.")
+                return
             self.addLog("Executing %d queries..." % len(queries))
-        
+            
         # execute the queries
 
         for query in queries:
