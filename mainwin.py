@@ -14,8 +14,10 @@ import stat  # index constants for os.stat()
 import time
 import sqlbase
 import sys
-import pdb
+import re
+import ipdb
 import codecs
+
 
 ## start query (optional)
 QUERY_START = (
@@ -28,7 +30,13 @@ QUERY_STOP = (
     "-- return", 
     "__return__"
 )
-# column count to auto size
+
+## executes all queries within the query stop (semi-colon delimited)
+# regex, if matched then exec all queries
+EXEC_ALL = re.compile(r"--(\s|)all").match
+
+# max column count to auto size
+# if column count > AUTOSIZE_COLUMNS, then no auto col. sizing
 AUTOSIZE_COLUMNS = 5
 
 class MainWin(sqbrowser_xrc.xrcfrmMain):
@@ -152,18 +160,29 @@ class MainWin(sqbrowser_xrc.xrcfrmMain):
         
         # get the query
         query = self.parse_query(contents)
-        
-        # execute the query
+
         self.addLogSplit()
-        self.addLog(query.strip())
-        results = self.sql_engine.execute_query(query)
-        if not results:
-            self.addLog("SQL ERROR: "+self.sql_engine.last_error)
-            return
+
+        # exec all queries, semi-colon separated
+        queries = [query]
+        if EXEC_ALL(query) is not None:
+            queries = query.split(";")
+            self.addLog("Executing %d queries..." % len(queries))
         
+        # execute the queries
+
+        for query in queries:
+            self.addLog(query.strip())
+            results = self.sql_engine.execute_query(query)
+            if not results:
+                self.addLog("SQL ERROR: "+self.sql_engine.last_error)
+                return
+                
+            self.addLog(results['message'])
+            pass
+            
         ## display the result data in the table
         
-        self.addLog(results['message'])
         # insert columns
         self.rebuildColumns(results['columns'])
         # insert rows
@@ -173,7 +192,7 @@ class MainWin(sqbrowser_xrc.xrcfrmMain):
         pass
         
     def parse_query(self, sql):
-        """Parses the sql to only show the grab the query
+        """Parses the sql to only show the target query
         @remark: it stops at the first 'query stop' place holder
         @return string the query to execute
         """
