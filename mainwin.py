@@ -300,7 +300,7 @@ class MainWin(sqbrowser_xrc.xrcfrmMain):
         for col, col_value in enumerate(row):
             if col == 0:
                 idx = self.lstResults.InsertStringItem(sys.maxint, str(count))
-            self.lstResults.SetStringItem(idx, col, str(col_value))
+            self.lstResults.SetStringItem(idx, col, unicode(col_value))
         pass
         
 ## FILE CHECK METHODS
