@@ -7,16 +7,20 @@ Created by Christopher Bess on 2009-03-22.
 Copyright (c) 2009 Qu. All rights reserved.
 """
 
-import wx
-import sqbrowser_xrc
 import os
 import stat  # index constants for os.stat()
 import time
 import sqlbase
 import sys
 import re
-import ipdb
+try:
+    import ipdb
+except:
+    #print "unable to import ipdb"
+    pass
 import codecs
+import wx
+import sqbrowser_xrc
 
 
 ## start query (optional)
