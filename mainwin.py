@@ -13,7 +13,9 @@ http://wxpython.org/codeguidelines.php
 import os
 import stat  # index constants for os.stat()
 import time
-import sqlbase
+from libs import sqlbase
+from libs import path
+from libs.config import Config
 import sys
 import re
 try:
@@ -23,6 +25,7 @@ except ImportError:
     import pdb
     set_trace = pdb.set_trace
 import codecs
+import cPickle as pickle
 import wx
 import sqbrowser_xrc
 
@@ -49,8 +52,10 @@ AUTOSIZE_COLUMNS = 5
 
 
 class MainWin(sqbrowser_xrc.xrcfrmMain):
-    """Represents the main SQL browser window
+    """Represents the main query browser window
     """
+    configPath = os.path.join(os.path.dirname(__file__), 'app.cfg')
+
     def __init__(self):
         """__init__
         """
@@ -63,7 +68,7 @@ class MainWin(sqbrowser_xrc.xrcfrmMain):
         self.btExecuteFile.Bind(wx.EVT_BUTTON, self.btExecuteFile_Click)
         self.btCommit.Bind(wx.EVT_BUTTON, self.btCommit_Click)
         # setup timers
-        self._interval = 2 # seconds
+        self._interval = 2  # seconds
         self.tmrCheckFile = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self.tmrCheckFile_Tick, self.tmrCheckFile)
         # file operation vars
@@ -75,9 +80,13 @@ class MainWin(sqbrowser_xrc.xrcfrmMain):
         # setup sqlengine
         self._sqlEngine = None
         # misc setup
+        self.config = Config(self.configPath)
+        self.config.load()
         self.StartTimer()
-        self.txtSqlDb.SetValue("")
-        self.txtSqlFile.SetValue("")
+        if self.config.db_path:
+            self.txtSqlDb.SetValue(self.config.db_path)
+        if self.config.src_path:
+            self.txtSqlFile.SetValue(self.config.src_path)
 
 ## EVENTS METHODS
     
@@ -94,14 +103,21 @@ class MainWin(sqbrowser_xrc.xrcfrmMain):
         """btOpenSqlFile_Click
         """
         path = self._openFileDialog(msg="Select the query file")
+        if not path:
+            return 
+        self.config.src_path = path
+        self.config.save()
         self.txtSqlFile.SetValue(path)
 
     def btOpenSqlDb_Click(self, evt):
         """btOpenSqlDb_Click
         """
         path = self._openFileDialog(msg="Select the data source")
-        if path:
-            self._clearLog()
+        if not path:
+            return
+        self._clearLog()
+        self.config.db_path = path
+        self.config.save()
         self.txtSqlDb.SetValue(path)
 
     def tmrCheckFile_Tick(self, evt):
@@ -169,11 +185,11 @@ class MainWin(sqbrowser_xrc.xrcfrmMain):
         if EXEC_ALL(query) is not None:
             queries = query.split(";")
             # beseech user
-            msg = "Execute %d queries?" % len(queries)
-            if wx.MessageBox(message=msg, style=wx.YES|wx.NO) == wx.NO:
+            msg = "Run %d queries?" % len(queries)
+            if wx.MessageBox(message=msg, style=wx.YES | wx.NO) == wx.NO:
                 self._addLog("Multi-query operation aborted.")
                 return
-            self._addLog("Executing %d queries..." % len(queries))
+            self._addLog("Running %d queries..." % len(queries))
             
         # execute the queries
 
