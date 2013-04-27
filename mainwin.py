@@ -347,7 +347,7 @@ class MainWin(sqbrowser_xrc.xrcfrmMain):
 
 
 def main():
-    app = wx.PySimpleApp()
+    app = wx.App()
     frame = MainWin()
     frame.Show()
     app.MainLoop()

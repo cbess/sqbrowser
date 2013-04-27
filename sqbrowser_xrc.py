@@ -233,7 +233,7 @@ def __init_resources():
     </object>
     <title>SQBrowser</title>
     <centered>1</centered>
-    <exstyle>wxFRAME_EX_METAL</exstyle>
+    <exstyle></exstyle>
     <XRCED>
       <events>EVT_CLOSE</events>
     </XRCED>

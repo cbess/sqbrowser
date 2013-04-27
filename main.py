@@ -11,7 +11,7 @@ import mainwin
 import wx
 
 def main():
-    app = wx.PySimpleApp()
+    app = wx.App()
     frame = mainwin.MainWin()
     frame.Show()
     app.MainLoop()
