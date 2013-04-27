@@ -15,9 +15,10 @@ import sys
 import re
 try:
     import ipdb
-except:
-    #print "unable to import ipdb"
-    pass
+    set_trace = ipdb.set_trace
+except ImportError:
+    import pdb
+    set_trace = pdb.set_trace
 import codecs
 import wx
 import sqbrowser_xrc
@@ -42,6 +43,7 @@ EXEC_ALL = re.compile(r"--(\s|)all").match
 # max column count to auto size
 # if column count > AUTOSIZE_COLUMNS, then no auto col. sizing
 AUTOSIZE_COLUMNS = 5
+
 
 class MainWin(sqbrowser_xrc.xrcfrmMain):
     """Represents the main SQL browser window
@@ -73,8 +75,7 @@ class MainWin(sqbrowser_xrc.xrcfrmMain):
         self.StartTimer()
         self.txtSqlDb.SetValue("")
         self.txtSqlFile.SetValue("")
-        pass
-    
+
 ## EVENTS METHODS
     
     def OnClose(self, evt):
@@ -86,15 +87,13 @@ class MainWin(sqbrowser_xrc.xrcfrmMain):
         
         # use default close action
         evt.Skip()
-        pass
-        
+
     def btOpenSqlFile_Click(self, evt):
         """btOpenSqlFile_Click
         """
         path = self.openFileDialog(msg="Select the SQL source file")
         self.txtSqlFile.SetValue(path)
-        pass
-        
+
     def btOpenSqlDb_Click(self, evt):
         """btOpenSqlDb_Click
         """
@@ -102,8 +101,7 @@ class MainWin(sqbrowser_xrc.xrcfrmMain):
         if path:
             self.clearLog()
         self.txtSqlDb.SetValue(path)
-        pass
-        
+
     def tmrCheckFile_Tick(self, evt):
         """tmrServer_Tick
         """
@@ -115,14 +113,12 @@ class MainWin(sqbrowser_xrc.xrcfrmMain):
         self.StopTimer()
         self.executeSqlFile()
         self.StartTimer()
-        pass
-        
+
     def btExecuteFile_Click(self, evt):
         """btExecuteFile_Click
         """
         self.executeSqlFile(force_execute=True)
-        pass
-    
+
     def btCommit_Click(self, evt):
         """btCommit_Click
         """
@@ -130,8 +126,7 @@ class MainWin(sqbrowser_xrc.xrcfrmMain):
             return
         self.sql_engine.commit()
         self.addLog("Changes committed...")
-        pass
-        
+
 ## MISC METHODS
 
     def executeSqlFile(self, force_execute=False):
@@ -180,6 +175,7 @@ class MainWin(sqbrowser_xrc.xrcfrmMain):
             
         # execute the queries
 
+        results = {}
         for query in queries:
             self.addLog(query.strip())
             results = self.sql_engine.execute_query(query)
@@ -188,8 +184,7 @@ class MainWin(sqbrowser_xrc.xrcfrmMain):
                 return
                 
             self.addLog(results['message'])
-            pass
-            
+
         ## display the result data in the table
         
         # insert columns
@@ -205,13 +200,12 @@ class MainWin(sqbrowser_xrc.xrcfrmMain):
         @remark: it stops at the first 'query stop' place holder
         @return string the query to execute
         """
-        idx = 0
         lines = sql.split('\n')
-        hasQueryStart = False
+        has_query_start = False
 
         for start in QUERY_START:
             if sql.find(start) >= 0:
-                hasQueryStart = True
+                has_query_start = True
                 break
         doStart = False
         query = ""
@@ -220,7 +214,7 @@ class MainWin(sqbrowser_xrc.xrcfrmMain):
             sLine = line.strip()
             
             # if flag seen, start grabbing
-            if not hasQueryStart or doStart:
+            if not has_query_start or doStart:
                 # if no starter, then grab until eof
                 query += line + "\n"
                 
@@ -228,12 +222,11 @@ class MainWin(sqbrowser_xrc.xrcfrmMain):
                 # start grabbing from next line on
                 doStart = True  
             
-            if not hasQueryStart or doStart:
+            if not has_query_start or doStart:
                 if sLine in QUERY_STOP:
                     # done, return query, remove the query stop
                     query = query.replace(sLine, "")
                     break
-            pass
         return query.strip()
         
     def addLogSplit(self):
@@ -241,29 +234,24 @@ class MainWin(sqbrowser_xrc.xrcfrmMain):
         """
         count = 70
         self.addLog("-" * count)
-        pass
-        
+
     def addLog(self, msg):
         """Adds a line of text to the output console
         """
         self.txtMessages.AppendText(msg+"\n")
-        pass
-        
+
     def clearLog(self):
         """Clears the output log
         """
         self.txtMessages.Clear()
-        pass
 
     def StartTimer(self):
         self.StopTimer()
         self.tmrCheckFile.Start(self._interval * 1000)
-        pass
 
     def StopTimer(self):
         self.tmrCheckFile.Stop()
-        pass
-        
+
     def openFileDialog(self, msg="Select the file", path=""):
         """Displays the open file dialog
         """
@@ -284,8 +272,7 @@ class MainWin(sqbrowser_xrc.xrcfrmMain):
         # insert the columns into the header
         for col, text in enumerate(columns):
             self.lstResults.InsertColumn(col, text)
-        pass
-        
+
     def resizeColumns(self, columns):
         """Resizes the columns
         """
@@ -294,8 +281,7 @@ class MainWin(sqbrowser_xrc.xrcfrmMain):
         if doAutoSize:
             for col, text in enumerate(columns):
                 self.lstResults.SetColumnWidth(col, wx.LIST_AUTOSIZE)
-        pass
-        
+
     def addRow(self, row):
         """addRow
         """        
@@ -305,8 +291,7 @@ class MainWin(sqbrowser_xrc.xrcfrmMain):
             if col == 0:
                 idx = self.lstResults.InsertStringItem(sys.maxint, str(count))
             self.lstResults.SetStringItem(idx, col, unicode(col_value))
-        pass
-        
+
 ## FILE CHECK METHODS
 
     def check_file(self, file_path):
@@ -323,14 +308,14 @@ class MainWin(sqbrowser_xrc.xrcfrmMain):
         
         # create a dictionary to hold file info
         file_info = {
-           'fname': file_path,
-           'fsize': file_stats[stat.ST_SIZE],
-           # last modified
-           'f_lm': time.strftime("%m/%d/%Y %I:%M:%S %p", last_mod),
-           # last accessed
-           'f_la': time.strftime("%m/%d/%Y %I:%M:%S %p", time.localtime(file_stats[stat.ST_ATIME])),
-           # creation time
-           'f_ct': time.strftime("%m/%d/%Y %I:%M:%S %p", time.localtime(file_stats[stat.ST_CTIME]))
+            'fname': file_path,
+            'fsize': file_stats[stat.ST_SIZE],
+            # last modified
+            'f_lm': time.strftime("%m/%d/%Y %I:%M:%S %p", last_mod),
+            # last accessed
+            'f_la': time.strftime("%m/%d/%Y %I:%M:%S %p", time.localtime(file_stats[stat.ST_ATIME])),
+            # creation time
+            'f_ct': time.strftime("%m/%d/%Y %I:%M:%S %p", time.localtime(file_stats[stat.ST_CTIME]))
         }
         
         # get the datetime object of the file modification time
@@ -353,23 +338,21 @@ class MainWin(sqbrowser_xrc.xrcfrmMain):
         """
         if not os.path.isfile(path):
             return None
-        contents = ""
         # get the file contents
-        fp = codecs.open(path, "r", encoding="utf-8")
-        contents = fp.read() 
-        fp.close()
+        with codecs.open(path, "r", encoding="utf-8") as fp:
+            contents = fp.read()
         return contents
         
 # end CLASS
-    
+
+
 def main():
     app = wx.PySimpleApp()
     frame = MainWin()
     frame.Show()
     app.MainLoop()
-    pass
 
 if __name__ == '__main__':
-	main()
+    main()
 
 
