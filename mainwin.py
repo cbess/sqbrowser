@@ -5,6 +5,9 @@ mainwin.py
 
 Created by Christopher Bess on 2009-03-22.
 Copyright (c) 2009 Qu. All rights reserved.
+
+coding guidelines:
+http://wxpython.org/codeguidelines.php
 """
 
 import os
@@ -65,12 +68,12 @@ class MainWin(sqbrowser_xrc.xrcfrmMain):
         self.Bind(wx.EVT_TIMER, self.tmrCheckFile_Tick, self.tmrCheckFile)
         # file operation vars
         self.file = None
-        self.last_check_time = None
+        self._lastCheckTime = None
         # status bar
         self.CreateStatusBar()
         self.SetStatusText("SQBrowser")
         # setup sqlengine
-        self.sql_engine = None
+        self._sqlEngine = None
         # misc setup
         self.StartTimer()
         self.txtSqlDb.SetValue("")
@@ -82,24 +85,23 @@ class MainWin(sqbrowser_xrc.xrcfrmMain):
         """OnClose
         @remark: overriden from base class
         """
-        if self.sql_engine:
-            self.sql_engine.disconnect()
-        
+        if self._sqlEngine:
+            self._sqlEngine.disconnect()
         # use default close action
         evt.Skip()
 
     def btOpenSqlFile_Click(self, evt):
         """btOpenSqlFile_Click
         """
-        path = self.openFileDialog(msg="Select the SQL source file")
+        path = self._openFileDialog(msg="Select the SQL source file")
         self.txtSqlFile.SetValue(path)
 
     def btOpenSqlDb_Click(self, evt):
         """btOpenSqlDb_Click
         """
-        path = self.openFileDialog(msg="Select the SQL DB")
+        path = self._openFileDialog(msg="Select the SQL DB")
         if path:
-            self.clearLog()
+            self._clearLog()
         self.txtSqlDb.SetValue(path)
 
     def tmrCheckFile_Tick(self, evt):
@@ -111,56 +113,56 @@ class MainWin(sqbrowser_xrc.xrcfrmMain):
             self.SetStatusText("SQBrowser")
             return
         self.StopTimer()
-        self.executeSqlFile()
+        self._executeSqlFile()
         self.StartTimer()
 
     def btExecuteFile_Click(self, evt):
         """btExecuteFile_Click
         """
-        self.executeSqlFile(force_execute=True)
+        self._executeSqlFile(force_execute=True)
 
     def btCommit_Click(self, evt):
         """btCommit_Click
         """
-        if not self.sql_engine:
+        if not self._sqlEngine:
             return
-        self.sql_engine.commit()
-        self.addLog("Changes committed...")
+        self._sqlEngine.commit()
+        self._addLog("Changes committed...")
 
 ## MISC METHODS
 
-    def executeSqlFile(self, force_execute=False):
+    def _executeSqlFile(self, force_execute=False):
         """executeSqlFile
         """
         path = self.txtSqlFile.GetValue()
         if not os.path.isfile(path):
-            self.addLog("Not a file: "+path)
+            self._addLog("Not a file: "+path)
             return
             
-        db_path = self.txtSqlDb.GetValue()
-        has_changed = self.check_file(path)
+        dbPath = self.txtSqlDb.GetValue()
+        hasChanged = self._checkFile(path)
         now = wx.DateTime().Now().Format()
         
-        if has_changed:
-            self.addLogSplit()
-            self.addLog("File Changed: "+now)
-        elif not has_changed:
+        if hasChanged:
+            self._addLogSplit()
+            self._addLog("File Changed: "+now)
+        elif not hasChanged:
             if not force_execute:
                 return            
         
         # setup the engine
-        self.sql_engine = sqlbase.SqlBase(db_path)        
-        if not self.sql_engine.connect():
-            self.addLog("Unable to connect to: "+db_path)
+        self._sqlEngine = sqlbase.SqlBase(dbPath)
+        if not self._sqlEngine.connect():
+            self._addLog("Unable to connect to: "+dbPath)
             return
         
         # get contents of sql file
-        contents = self.read_contents(path)
+        contents = self._readContents(path)
         
         # get the query
-        query = self.parse_query(contents)
+        query = self._parseQuery(contents)
 
-        self.addLogSplit()
+        self._addLogSplit()
 
         # exec all queries, semi-colon separated
         queries = [query]
@@ -169,43 +171,42 @@ class MainWin(sqbrowser_xrc.xrcfrmMain):
             # beseech user
             msg = "Execute %d queries?" % len(queries)
             if wx.MessageBox(message=msg, style=wx.YES|wx.NO) == wx.NO:
-                self.addLog("Multi-query operation aborted.")
+                self._addLog("Multi-query operation aborted.")
                 return
-            self.addLog("Executing %d queries..." % len(queries))
+            self._addLog("Executing %d queries..." % len(queries))
             
         # execute the queries
 
         results = {}
         for query in queries:
-            self.addLog(query.strip())
-            results = self.sql_engine.execute_query(query)
+            self._addLog(query.strip())
+            results = self._sqlEngine.execute_query(query)
             if not results:
-                self.addLog("SQL ERROR: "+self.sql_engine.last_error)
+                self._addLog("SQL ERROR: "+self._sqlEngine.last_error)
                 return
                 
-            self.addLog(results['message'])
+            self._addLog(results['message'])
 
         ## display the result data in the table
         
         # insert columns
-        self.rebuildColumns(results['columns'])
+        self._rebuildColumns(results['columns'])
         # insert rows
         for row in results['rows']:
-            self.addRow(row)
-        self.resizeColumns(results['columns'])
-        pass
-        
-    def parse_query(self, sql):
+            self._addRow(row)
+        self._resizeColumns(results['columns'])
+
+    def _parseQuery(self, sql):
         """Parses the sql to only show the target query
         @remark: it stops at the first 'query stop' place holder
         @return string the query to execute
         """
         lines = sql.split('\n')
-        has_query_start = False
+        hasQueryStart = False
 
         for start in QUERY_START:
             if sql.find(start) >= 0:
-                has_query_start = True
+                hasQueryStart = True
                 break
         doStart = False
         query = ""
@@ -214,7 +215,7 @@ class MainWin(sqbrowser_xrc.xrcfrmMain):
             sLine = line.strip()
             
             # if flag seen, start grabbing
-            if not has_query_start or doStart:
+            if not hasQueryStart or doStart:
                 # if no starter, then grab until eof
                 query += line + "\n"
                 
@@ -222,25 +223,25 @@ class MainWin(sqbrowser_xrc.xrcfrmMain):
                 # start grabbing from next line on
                 doStart = True  
             
-            if not has_query_start or doStart:
+            if not hasQueryStart or doStart:
                 if sLine in QUERY_STOP:
                     # done, return query, remove the query stop
                     query = query.replace(sLine, "")
                     break
         return query.strip()
         
-    def addLogSplit(self):
+    def _addLogSplit(self):
         """Adds an output separator to the log
         """
         count = 70
-        self.addLog("-" * count)
+        self._addLog("-" * count)
 
-    def addLog(self, msg):
+    def _addLog(self, msg):
         """Adds a line of text to the output console
         """
         self.txtMessages.AppendText(msg+"\n")
 
-    def clearLog(self):
+    def _clearLog(self):
         """Clears the output log
         """
         self.txtMessages.Clear()
@@ -252,7 +253,7 @@ class MainWin(sqbrowser_xrc.xrcfrmMain):
     def StopTimer(self):
         self.tmrCheckFile.Stop()
 
-    def openFileDialog(self, msg="Select the file", path=""):
+    def _openFileDialog(self, msg="Select the file", path=""):
         """Displays the open file dialog
         """
         path = wx.FileSelector(
@@ -262,7 +263,7 @@ class MainWin(sqbrowser_xrc.xrcfrmMain):
         )
         return path
         
-    def rebuildColumns(self, columns):
+    def _rebuildColumns(self, columns):
         """Rebuilds the list ctrl
         @remarks: Deletes all columns and rows
         """
@@ -273,7 +274,7 @@ class MainWin(sqbrowser_xrc.xrcfrmMain):
         for col, text in enumerate(columns):
             self.lstResults.InsertColumn(col, text)
 
-    def resizeColumns(self, columns):
+    def _resizeColumns(self, columns):
         """Resizes the columns
         """
         doAutoSize = (len(columns) <= AUTOSIZE_COLUMNS)
@@ -282,7 +283,7 @@ class MainWin(sqbrowser_xrc.xrcfrmMain):
             for col, text in enumerate(columns):
                 self.lstResults.SetColumnWidth(col, wx.LIST_AUTOSIZE)
 
-    def addRow(self, row):
+    def _addRow(self, row):
         """addRow
         """        
         count = self.lstResults.GetItemCount()
@@ -294,46 +295,46 @@ class MainWin(sqbrowser_xrc.xrcfrmMain):
 
 ## FILE CHECK METHODS
 
-    def check_file(self, file_path):
+    def _checkFile(self, filePath):
         """Checks the modification date for the specified file path
         """
-        if not os.path.isfile(file_path):
+        if not os.path.isfile(filePath):
             return False
         
-        has_file_changed = False
+        hasFileChanged = False
         
         # get file info
-        file_stats = os.stat(file_path)
-        last_mod = time.localtime(file_stats[stat.ST_MTIME])
+        fileStats = os.stat(filePath)
+        lastMod = time.localtime(fileStats[stat.ST_MTIME])
         
         # create a dictionary to hold file info
         file_info = {
-            'fname': file_path,
-            'fsize': file_stats[stat.ST_SIZE],
+            'fname': filePath,
+            'fsize': fileStats[stat.ST_SIZE],
             # last modified
-            'f_lm': time.strftime("%m/%d/%Y %I:%M:%S %p", last_mod),
+            'f_lm': time.strftime("%m/%d/%Y %I:%M:%S %p", lastMod),
             # last accessed
-            'f_la': time.strftime("%m/%d/%Y %I:%M:%S %p", time.localtime(file_stats[stat.ST_ATIME])),
+            'f_la': time.strftime("%m/%d/%Y %I:%M:%S %p", time.localtime(fileStats[stat.ST_ATIME])),
             # creation time
-            'f_ct': time.strftime("%m/%d/%Y %I:%M:%S %p", time.localtime(file_stats[stat.ST_CTIME]))
+            'f_ct': time.strftime("%m/%d/%Y %I:%M:%S %p", time.localtime(fileStats[stat.ST_CTIME]))
         }
         
         # get the datetime object of the file modification time
-        last_mod_time = wx.DateTime()
-        last_mod_time.ParseDateTime(file_info['f_lm'])
+        lastModTime = wx.DateTime()
+        lastModTime.ParseDateTime(file_info['f_lm'])
     
-        if self.last_check_time is None:
-            self.last_check_time = wx.DateTime().Now()
+        if self._lastCheckTime is None:
+            self._lastCheckTime = wx.DateTime().Now()
         
         # make sure it is after the last checked time
-        if last_mod_time.IsLaterThan(self.last_check_time):
-            has_file_changed = True
+        if lastModTime.IsLaterThan(self._lastCheckTime):
+            hasFileChanged = True
         
         # get the last mod time
-        self.last_check_time = last_mod_time
-        return has_file_changed
+        self._lastCheckTime = lastModTime
+        return hasFileChanged
         
-    def read_contents(self, path):
+    def _readContents(self, path):
         """read_contents
         """
         if not os.path.isfile(path):

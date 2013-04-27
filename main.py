@@ -10,13 +10,14 @@ Copyright (c) 2009 __MyCompanyName__. All rights reserved.
 import mainwin
 import wx
 
+
 def main():
     app = wx.App()
     frame = mainwin.MainWin()
     frame.Show()
     app.MainLoop()
-    pass
+
 
 if __name__ == '__main__':
-	main()
+    main()
 
