@@ -93,13 +93,13 @@ class MainWin(sqbrowser_xrc.xrcfrmMain):
     def btOpenSqlFile_Click(self, evt):
         """btOpenSqlFile_Click
         """
-        path = self._openFileDialog(msg="Select the SQL source file")
+        path = self._openFileDialog(msg="Select the query file")
         self.txtSqlFile.SetValue(path)
 
     def btOpenSqlDb_Click(self, evt):
         """btOpenSqlDb_Click
         """
-        path = self._openFileDialog(msg="Select the SQL DB")
+        path = self._openFileDialog(msg="Select the data source")
         if path:
             self._clearLog()
         self.txtSqlDb.SetValue(path)

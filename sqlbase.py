@@ -68,9 +68,8 @@ class SqlBase:
         # get the rows
         values = results.fetchall()
         if values:
-            # get the     columns names
+            # get the columns names
             cols = [r[0] for r in results.description]
-
             queryResult = {
                 'columns': cols,
                 'rows': values,
