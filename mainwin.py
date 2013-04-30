@@ -204,12 +204,11 @@ class MainWin(sqbrowser_xrc.xrcfrmMain):
             self._runSql(queries)
 
     def _runJson(self, queries, jsonPath):
-        results = {}
         for query in queries:
             db = jsondb.from_file(jsonPath)
             results = db.query(query).values()
-        self._addLog(pprint.pformat(results))
-        return results
+            # output to log, for now
+            self._addLog(pprint.pformat(results))
 
     def _runSql(self, queries):
         # execute the queries
