@@ -16,6 +16,8 @@ import time
 from libs import sqlbase
 from libs import path
 from libs.config import Config
+from libs import jsondb
+import json
 import sys
 import re
 try:
@@ -28,6 +30,7 @@ import codecs
 import cPickle as pickle
 import wx
 import sqbrowser_xrc
+import pprint
 
 
 ## start query (optional)
@@ -129,13 +132,13 @@ class MainWin(sqbrowser_xrc.xrcfrmMain):
             self.SetStatusText("SQBrowser")
             return
         self.StopTimer()
-        self._executeSqlFile()
+        self._executeQueryFile()
         self.StartTimer()
 
     def btExecuteFile_Click(self, evt):
         """btExecuteFile_Click
         """
-        self._executeSqlFile(force_execute=True)
+        self._executeQueryFile(force_execute=True)
 
     def btCommit_Click(self, evt):
         """btCommit_Click
@@ -147,8 +150,8 @@ class MainWin(sqbrowser_xrc.xrcfrmMain):
 
 ## MISC METHODS
 
-    def _executeSqlFile(self, force_execute=False):
-        """executeSqlFile
+    def _executeQueryFile(self, force_execute=False):
+        """Runs the query specified by the opened query file
         """
         path = self.txtSqlFile.GetValue()
         if not os.path.isfile(path):
@@ -164,19 +167,23 @@ class MainWin(sqbrowser_xrc.xrcfrmMain):
             self._addLog("File Changed: "+now)
         elif not hasChanged:
             if not force_execute:
-                return            
-        
-        # setup the engine
-        self._sqlEngine = sqlbase.SqlBase(dbPath)
-        if not self._sqlEngine.connect():
-            self._addLog("Unable to connect to: "+dbPath)
-            return
-        
-        # get contents of sql file
+                return
+
+        # get contents of query file
         contents = self._readContents(path)
-        
+
         # get the query
         query = self._parseQuery(contents)
+
+        # setup the engine, determine the query type
+        isJson = query.lstrip()[:2] == '$.'
+        if isJson:
+            pass
+        else:
+            self._sqlEngine = sqlbase.SqlBase(dbPath)
+            if not self._sqlEngine.connect():
+                self._addLog("Unable to connect to: "+dbPath)
+                return
 
         self._addLogSplit()
 
@@ -190,9 +197,22 @@ class MainWin(sqbrowser_xrc.xrcfrmMain):
                 self._addLog("Multi-query operation aborted.")
                 return
             self._addLog("Running %d queries..." % len(queries))
-            
-        # execute the queries
 
+        if isJson:
+            self._runJson(queries, dbPath)
+        else:
+            self._runSql(queries)
+
+    def _runJson(self, queries, jsonPath):
+        results = {}
+        for query in queries:
+            db = jsondb.from_file(jsonPath)
+            results = db.query(query).values()
+        self._addLog(pprint.pformat(results))
+        return results
+
+    def _runSql(self, queries):
+        # execute the queries
         results = {}
         for query in queries:
             self._addLog(query.strip())
@@ -200,11 +220,11 @@ class MainWin(sqbrowser_xrc.xrcfrmMain):
             if not results:
                 self._addLog("SQL ERROR: "+self._sqlEngine.last_error)
                 return
-                
+
             self._addLog(results['message'])
 
         ## display the result data in the table
-        
+
         # insert columns
         self._rebuildColumns(results['columns'])
         # insert rows
@@ -212,16 +232,16 @@ class MainWin(sqbrowser_xrc.xrcfrmMain):
             self._addRow(row)
         self._resizeColumns(results['columns'])
 
-    def _parseQuery(self, sql):
-        """Parses the sql to only show the target query
-        @remark: it stops at the first 'query stop' place holder
+    def _parseQuery(self, src):
+        """Parses the src to only show the target query
+        @remark: it stops at the first 'query stop' placeholder
         @return string the query to execute
         """
-        lines = sql.split('\n')
+        lines = src.split('\n')
         hasQueryStart = False
 
         for start in QUERY_START:
-            if sql.find(start) >= 0:
+            if src.find(start) >= 0:
                 hasQueryStart = True
                 break
         doStart = False

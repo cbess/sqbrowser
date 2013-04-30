@@ -1,5 +1,5 @@
+filename=sqbrowser_xrc.py
 autogenerate=1
 embedResource=0
-filename=sqbrowser_xrc.py
-genGettext=0
 makeXRS=0
+genGettext=0
