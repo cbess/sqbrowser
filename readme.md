@@ -1,6 +1,6 @@
 # SQBrowser
 
-Query Browser that can be used with any text editor.
+SQLite3 query browser that can be used with any text editor.
 
 Uses wxPython 2.8+ to provide a UI for sqlite database query results. It is different from other SQLite database managers, because it only displays results. This allows you to use your favorite SQL editor to execute SQL queries against the database.
 
